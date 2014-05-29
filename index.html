@@ -1,0 +1,195 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Pursue Evade</title>
+    <link rel="stylesheet" href="css/style.css">
+  </head>
+  <body>
+ 
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <script src="js/utils.js"></script>
+    <script src="js/steeringBehavior.js"></script>        
+    <script>
+    "use strict";
+	
+    window.onload = function () {
+
+        // global variables
+        var canvas = document.getElementById( 'canvas' );
+        var context = canvas.getContext( '2d' );
+        var background = "#FFF";
+
+        function drawBoard( context ){
+          context.save();
+          context.lineWidth = 4;
+          context.fillStyle = background;
+          context.strokeStyle = "black";          
+          context.fillRect( 0, 0, canvas.width, canvas.height );
+          context.strokeRect( 0, 0, canvas.width, canvas.height );
+          context.restore();
+        }  
+
+        var robot = new Boid({
+          maxSpeed: 4,
+          maxAcceleration: 1.25,
+          behaviors: new Wander({
+            wanderAngle: 30,
+            wanderChange: 6,
+            circleRadius: 3
+          }),
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+          radius: 30,
+          gunWidth: 15,
+          gunHeight: 40,
+          graphicsForDrawing: {
+            context: context,            
+            lineWidth: 2,
+            fillStyle: "#CCCCCC"
+          }
+        });
+
+        var pursue = new Boid({ 
+          maxSpeed: 5,
+          mass: 10,
+          behaviors: new Pursue( robot, 25, 0.08 ),
+          x: 50,
+          y: 50,
+          radius: 20,
+          gunWidth: 10,
+          gunHeight: 30,            
+          graphicsForDrawing: {
+            context: context,            
+            lineWidth: 2,
+            fillStyle: "#0000FF"
+          }
+        });
+
+        pursue.tracers = [];
+       
+        var seek = new Boid({ 
+          maxSpeed: 5,
+          mass: 10,
+          behaviors: new Seek( robot ),
+          x: 0,
+          y: 0,
+          radius: 20,
+          gunWidth: 10,
+          gunHeight: 30,          
+          graphicsForDrawing: {
+            context: context,            
+            lineWidth: 2,
+            fillStyle: "pink"
+          }
+        });
+
+        seek.tracers = [];
+
+        var evade = new Boid({ 
+          maxSpeed: 3,
+          mass: 5,
+          behaviors: new Evade( robot, 25, 0.08 ),
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+          radius: 20,
+          gunWidth: 10,
+          gunHeight: 30,          
+          graphicsForDrawing: {
+            context: context,            
+            lineWidth: 2,
+            fillStyle: "#00FF00"
+          }
+        });
+
+        evade.tracers = [];
+
+        var flee = new Boid({ 
+          maxSpeed: 3,
+          mass: 5,
+          behaviors: new Flee( robot ),
+          x: canvas.width / 2 + 50,
+          y: canvas.height / 2 + 50,
+          radius: 20,
+          gunWidth: 10,
+          gunHeight: 30,          
+          graphicsForDrawing: {
+            context: context,            
+            lineWidth: 2,
+            fillStyle: "#FF0000"
+          }
+        });
+
+        flee.tracers = [];
+
+        function drawCircle( x, y, radius, strokeStyle, fillStyle ) {
+          context.save();
+          context.beginPath();
+          context.strokeStyle = strokeStyle;
+          context.fillStyle = fillStyle;
+          context.arc(x, y, radius, 0, 2 * Math.PI);
+          context.stroke();
+          context.restore();
+        }
+
+        window.setInterval( dropTracers, 200 );
+
+        function dropTracers() {
+          seek.tracers.push( { x : seek.x, y : seek.y } );
+          pursue.tracers.push( { x : pursue.x, y : pursue.y } );
+          flee.tracers.push( { x : flee.x, y : flee.y } );
+          evade.tracers.push( { x : evade.x, y : evade.y } );
+        }
+
+        function drawTracers(){
+          for (var i = 0; i < seek.tracers.length; ++i) {
+            drawCircle( seek.tracers[i].x, seek.tracers[i].y, 8, seek.graphicsForDrawing.fillStyle, background);
+          }
+          for (var i = 0; i < pursue.tracers.length; ++i) {
+            drawCircle( pursue.tracers[i].x, pursue.tracers[i].y, 8, pursue.graphicsForDrawing.fillStyle, background);
+          }          
+          while ( seek.tracers.length > 50 ) {
+            seek.tracers.shift();
+          }
+          while ( pursue.tracers.length > 50 ) {
+            pursue.tracers.shift();
+          }
+
+          for (var i = 0; i < evade.tracers.length; ++i) {
+            drawCircle( evade.tracers[i].x, evade.tracers[i].y, 8, evade.graphicsForDrawing.fillStyle, background);
+          }
+          for (var i = 0; i < flee.tracers.length; ++i) {
+            drawCircle( flee.tracers[i].x, flee.tracers[i].y, 8, flee.graphicsForDrawing.fillStyle, background);
+          }          
+          while ( evade.tracers.length > 50 ) {
+            evade.tracers.shift();
+          }
+          while ( flee.tracers.length > 50 ) {
+            flee.tracers.shift();
+          }
+        }
+
+        // game loop
+        (function tick() {
+          window.requestAnimationFrame( tick, canvas );
+          context.clearRect( 0, 0, canvas.width, canvas.height );
+          drawBoard( context );
+          drawTracers();
+
+          robot.draw();
+          seek.draw();
+          pursue.draw();
+          flee.draw();
+          evade.draw();
+
+          robot.update();
+          seek.update();
+          pursue.update();
+          flee.update();
+          evade.update(); 
+
+        })();
+    };
+    </script>
+   </body>
+</html>
